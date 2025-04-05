@@ -8,15 +8,16 @@ import { useAuth } from "../store/auth"; // Import the auth context
 const LocationAutocomplete = ({ onSelect, value }) => {
 
   // Get location state from context
-  const { setLocationState } = useAuth();
+  const {  setLocationState } = useAuth(); // Get location state from context
   
+
   const [query, setQuery] = useState(value || "");
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const dropdownRef = useRef(null);
 
-  const apiKey = "AlzaSy6ke6zPMuXYK7NPmZN3J-77YCGs23JsgKq";
+  const apiKey = import.meta.env.GO_MAPS_API_KEY;
 
   // Fetch location suggestions from API
   const fetchSuggestions = async (query) => {

@@ -112,8 +112,8 @@ export const Chooseservice = () => {
 
               {/* Driver Matching Animation */}
               {isSearching && (
-                <div className="flex flex-col items-center my-8">
-                  <div className="relative w-32 h-32 mb-4">
+                <div className="flex flex-col items-center ">
+                  <div className="relative w-32 h-32 m-10 pt-100">
                     {/* Pulsing circle animation */}
                     <motion.div
                       className="absolute inset-0 bg-blue-100 rounded-full"
@@ -132,7 +132,7 @@ export const Chooseservice = () => {
                       <img 
                         src={service === 'Ambulance' ? "/images/ambulance.jpg" : "/images/air_ambulance.jpg"} 
                         alt="Vehicle" 
-                        className="w-16 h-16"
+                        className="w-32 h-32 rounded-full"
                       />
                     </div>
                   </div>

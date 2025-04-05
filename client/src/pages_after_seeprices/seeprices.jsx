@@ -16,39 +16,41 @@ export const Seeprices = () => {
 
   // Priority: Use location.state if available (direct navigation), otherwise use context
   const { pickup: routePickup, drop: routeDrop } = location.state || {};
-  const { pickup: contextPickup, dropoffCity, dropoffHospital } = locationState;
-  
+  const { pickup: contextPickup, dropoffCity, dropoffHospital, latlong_drop, latlong_pickup } = locationState;
+
   // Determine final pickup and drop values
   const pickup = routePickup || contextPickup || 'Unknown Location';
-  const drop =   dropoffHospital || 'Unknown Destination';
-  
+  const drop = dropoffHospital || 'Unknown Destination';
+
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
   //   ******   Problem to say to interviewer: docs doesnt has examples to integrate google maps with react. its a strategic task to use the standard documentation and integrate it with react.  Notice deviations from the standard documentation. because the React implementation differs strategically.
 
 
   // ****** Strategic Discussion Points to say to interviewer:(resarch and say)
-// When asked about differences, structure your answer as:
+  // When asked about differences, structure your answer as:
 
-// Acknowledge Standard Approach
-// "The documentation suggests this basic implementation..."  // READ THE  DOCS (HIGHLY IMPORTANT : https://developers.google.com/maps/documentation/javascript/overview)
+  // Acknowledge Standard Approach
+  // "The documentation suggests this basic implementation..."  // READ THE  DOCS (HIGHLY IMPORTANT : https://developers.google.com/maps/documentation/javascript/overview)
 
-// Identify React-Specific Challenges
-// "But in React we face three unique problems:
-// a) Lifecycle management
-// b) Strict mode behaviors
-// c) HMR rehydration"
+  // Identify React-Specific Challenges
+  // "But in React we face three unique problems:
+  // a) Lifecycle management
+  // b) Strict mode behaviors
+  // c) HMR rehydration"
 
-// Show Solution Evolution
-// "This led me to implement a three-phase loading process:
-// Phase 1: Script injection with ref tracking
-// Phase 2: Callback state synchronization
-// Phase 3: Cleanup guards"
+  // Show Solution Evolution
+  // "This led me to implement a three-phase loading process:
+  // Phase 1: Script injection with ref tracking
+  // Phase 2: Callback state synchronization
+  // Phase 3: Cleanup guards"
 
-// Reference Community Patterns
-// "The React wrapper library (@react-google-maps/api) actually uses similar techniques, as seen in their source..."
+  // Reference Community Patterns
+  // "The React wrapper library (@react-google-maps/api) actually uses similar techniques, as seen in their source..."
 
   // Initialize map when component mounts
 
-   useEffect(() => {
+  useEffect(() => {
     // Check if script is already loaded
     if (window.google) {   // When the Google Maps JavaScript API loads successfully, it attaches its main object to window.google.
       setScriptLoaded(true);
@@ -57,10 +59,10 @@ export const Seeprices = () => {
 
     // Create script element
     scriptRef.current = document.createElement('script');
-    scriptRef.current.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyACTHojBOulVmB2ZJKlYE5jyNF4Yu0s4Go&callback=initMap`;
+    scriptRef.current.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap`;
     scriptRef.current.async = true;
     scriptRef.current.defer = true;
-    
+
     // Define the global callback
     window.initMap = () => setScriptLoaded(true); // State management
 
@@ -75,23 +77,51 @@ export const Seeprices = () => {
     };
   }, []);
 
-    // Initialize map when script loads : https://developers.google.com/maps/documentation/javascript/reference/map#Map
+  // Initialize map when script loads : https://developers.google.com/maps/documentation/javascript/reference/map#Map
   useEffect(() => {
     if (!scriptLoaded || !mapRef.current) return;
 
-    
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer();
+
     const newMap = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 25.5941, lng: 85.1376  },
+      center: { lat: 25.5941, lng: 85.1376 },
       zoom: 15,
       mapTypeId: "roadmap"
     });
     newMap.setTilt(45);
-    setMap(newMap);
+    directionsRenderer.setMap(newMap);
+
+    calculateAndDisplayRoute(directionsService, directionsRenderer);
+
 
     return () => {
       // Additional cleanup if needed
     };
   }, [scriptLoaded]);
+
+
+/////showing the route on the map
+
+   function calculateAndDisplayRoute(directionsService, directionsRenderer) {
+
+    directionsService
+      .route({
+        origin: {
+          query: pickup
+        },
+        destination: {
+          query: dropoffHospital
+        },
+        travelMode: google.maps.TravelMode.DRIVING,
+      })
+      .then((response) => {
+        directionsRenderer.setDirections(response);
+
+
+      })
+      .catch((e) => window.alert("Directions request failed due to " + status));
+  }
 
 
   const [service, setService] = useState("Ambulance");
@@ -131,13 +161,13 @@ export const Seeprices = () => {
           {/* Map Section (Left Side) */}
           <div className="">
             {/* Map container - replaces the image */}
-            <div 
-        ref={mapRef} 
-        className="w-5xl h-[500px] rounded-lg"
-        style={{ backgroundColor: '#e5e7eb' }}
-      >
-        {!scriptLoaded && <div className="flex items-center justify-center h-full">Loading map...</div>}
-      </div>
+            <div
+              ref={mapRef}
+              className="w-5xl h-[500px] rounded-lg"
+              style={{ backgroundColor: '#e5e7eb' }}
+            >
+              {!scriptLoaded && <div className="flex items-center justify-center h-full">Loading map...</div>}
+            </div>
             {/* Display pickup and drop locations */}
             <div className="mt-4 p-4 bg-white text-black rounded-lg shadow">
               <p className="font-semibold">Pickup: <span className="font-normal">{pickup}</span></p>
@@ -148,15 +178,14 @@ export const Seeprices = () => {
           {/* Service Options Section (Right Side) */}
           <div className="lg:w-1/2 flex flex-col gap-8 w-full">
             <div className="text-5xl font-bold p-10 text-gray-800 self-center">Gathering options</div>
-            
+
             {/* Services List */}
             <div className="space-y-6">
               {services.map((serviceItem, index) => (
                 <button
                   key={index}
-                  className={`flex items-center p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 w-full text-left ${
-                    service === serviceItem.type ? 'border-2 border-black' : 'border border-transparent'
-                  }`}
+                  className={`flex items-center p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 w-full text-left ${service === serviceItem.type ? 'border-2 border-black' : 'border border-transparent'
+                    }`}
                   style={{
                     backgroundColor: 'white',
                     transition: 'border-color 0.3s ease',
@@ -164,9 +193,9 @@ export const Seeprices = () => {
                   onClick={() => handleServiceClick(serviceItem.type)}
                 >
                   {/* Service Image */}
-                  <img 
-                    src={serviceItem.src} 
-                    alt={`${serviceItem.type} service`} 
+                  <img
+                    src={serviceItem.src}
+                    alt={`${serviceItem.type} service`}
                     className='w-65  '
                   />
 
@@ -191,15 +220,15 @@ export const Seeprices = () => {
                 </button>
               ))}
             </div>
-            
+
             {/* Choose Service Button */}
-            <button 
-              onClick={() => navigate('/seeprices/chooseservice', { 
-                state: { 
-                  service, 
+            <button
+              onClick={() => navigate('/seeprices/chooseservice', {
+                state: {
+                  service,
                   pickup, // Using the determined pickup value
                   drop    // Using the determined drop value
-                } 
+                }
               })}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors"
             >
